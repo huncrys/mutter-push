@@ -104,25 +104,26 @@ class mutter(znc.Module):
 
     # Added channel and sendAll parameters
     def handle_message(self, channel, nick, message, sendAll):
-        if not self.blocked_nick(nick):
-            network = self.network_identifier()
-            if network in self.networks:
-                for token in self.networks[network].keys():
-                    if self.networks[network][token]["active"] == True:
-                        for keyword in self.networks[network][token]["keywords"]:
-                            line = self.stripControlCodesRegex.sub('', message.s)
-                            # Added sendAll argument
-                            if sendAll or re.search(r'(?:[\s]|[^\w]|^)({0})(?=[\s]|[^\w]|$)'.format(re.escape(keyword)), line, re.IGNORECASE):
-                                if self.GetNetwork().IsIRCAway():
-                                    version = self.networks[network][token]["version"]
-                                    # Split title and body for formatting
-                                    if channel:
-                                        title = "{} ({} @ {})".format( nick.GetNick(), channel.GetName(), self.GetNetwork().GetName())
-                                    else:
-                                        title = "{} ({})".format(nick.GetNick(), self.GetNetwork().GetName())
-                                    body = "{}".format(line)
-                                    self.send_notification(version, token, title, body)
-                                    break
+        if not channel or not channel.IsDetached():
+            if not self.blocked_nick(nick):
+                network = self.network_identifier()
+                if network in self.networks:
+                    for token in self.networks[network].keys():
+                        if self.networks[network][token]["active"] == True:
+                            for keyword in self.networks[network][token]["keywords"]:
+                                line = self.stripControlCodesRegex.sub('', message.s)
+                                # Added sendAll argument
+                                if sendAll or re.search(r'(?:[\s]|[^\w]|^)({0})(?=[\s]|[^\w]|$)'.format(re.escape(keyword)), line, re.IGNORECASE):
+                                    if self.GetNetwork().IsIRCAway():
+                                        version = self.networks[network][token]["version"]
+                                        # Split title and body for formatting
+                                        if channel:
+                                            title = "{} ({} @ {})".format(nick.GetNick(), channel.GetName(), self.GetNetwork().GetName())
+                                        else:
+                                            title = "{} ({})".format(nick.GetNick(), self.GetNetwork().GetName())
+                                        body = "{}".format(line)
+                                        self.send_notification(version, token, title, body)
+                                        break
         return znc.CONTINUE
 
     # Split "line" into "title" and "body" for APNS formatting
@@ -182,7 +183,7 @@ class mutter(znc.Module):
     # Added 'none' for channel to message handler and 'True' for sendAll
     def OnPrivAction(self, nick, message):
         return self.handle_message(None, nick, message, True)
-        
+
     # Added 'none' for channel to message handler and 'True' for sendAll
     def OnPrivNotice(self, nick, message):
         if not (message.s).startswith("***"):
